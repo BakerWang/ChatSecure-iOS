@@ -33,7 +33,7 @@ FOUNDATION_EXPORT const unsigned char ChatSecureCoreVersionString[];
 #import "OTRConstants.h"
 #import "OTRDatabaseManager.h"
 #import "OTRAppDelegate.h"
-#import "OTRTheme.h"
+#import "AppTheme.h"
 #import "OTRPushTLVHandlerProtocols.h"
 #import "OTREncryptionManager.h"
 #import "OTRQRCodeActivity.h"
@@ -86,6 +86,9 @@ FOUNDATION_EXPORT const unsigned char ChatSecureCoreVersionString[];
 #import "OTRXMPPError.h"
 #import "OTRXMPPRoomManager.h"
 #import "OTRQRCodeReaderDelegate.h"
+#import "OTRBuddyApprovalCell.h"
+#import "RoomOccupantRole.h"
+
 
 #import "OTRImageItem.h"
 #import "OTRAudioItem.h"
@@ -100,4 +103,4 @@ FOUNDATION_EXPORT const unsigned char ChatSecureCoreVersionString[];
 #import "OTRSignalSession.h"
 
 //OMEMO Models
-#import "OTROMEMODevice.h"
+#import "OMEMODevice.h"

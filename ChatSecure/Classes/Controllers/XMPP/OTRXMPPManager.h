@@ -33,21 +33,25 @@
 
 @class OTRXMPPAccount;
 @class OTROMEMOSignalCoordinator;
-@class XMPPPushModule, ServerCheck, FileTransferManager;
+@class DatabaseConnections;
+@class XMPPPushModule, ServerCheck, FileTransferManager, MessageStorage;
 
 NS_ASSUME_NONNULL_BEGIN
+NS_SWIFT_NAME(XMPPManager)
 @interface OTRXMPPManager : NSObject <XMPPRosterDelegate, XMPPStreamDelegate, NSFetchedResultsControllerDelegate, OTRProtocol>
 
 @property (nonatomic, strong, readonly) OTRXMPPAccount *account;
 
 @property (nonatomic, strong, readonly) XMPPRoster *xmppRoster;
-@property (nonatomic, strong, readonly) XMPPCapabilities *xmppCapabilities;
 @property (nonatomic, strong, readonly) OTRXMPPRoomManager *roomManager;
 @property (nonatomic, strong, nullable) OTROMEMOSignalCoordinator *omemoSignalCoordinator;
-@property (nonatomic, strong, readonly) OTRServerCapabilities *serverCapabilities;
 @property (nonatomic, strong, readonly) XMPPPushModule *xmppPushModule;
 @property (nonatomic, strong, readonly) ServerCheck *serverCheck;
 @property (nonatomic, strong, readonly) FileTransferManager *fileTransferManager;
+@property (nonatomic, strong, readonly) MessageStorage *messageStorage;
+@property (nonatomic, strong, readonly) DatabaseConnections *connections;
+
+@property (atomic, readonly) OTRLoginStatus loginStatus;
 /** Useful for showing error messages related to connection, like SSL certs. Only safe for access from main queue. */
 @property (nonatomic, readonly, nullable) NSError *lastConnectionError;
 
@@ -96,24 +100,10 @@ NS_ASSUME_NONNULL_BEGIN
 /** Enqueues an array of messages to be sent by message queue */
 - (void) enqueueMessages:(NSArray<id<OTRMessageProtocol>>*)messages;
 
+/** Add new buddy using JID (or return existing). If we have an incoming subscription request, answer that. Always add buddy to roster. @warn ⚠️ Opens implicit readwrite transaction. May block UI, or cause deadlocks if used within another transaction. */
+- (OTRXMPPBuddy *)addToRosterWithJID:(XMPPJID *)jid
+                         displayName:(nullable NSString *)displayName;
 @end
 
-
-/**
- This notification is sent every time there is a change in the login status and if it goes 'backwards' there
- should be an error or a user initiated disconnect.
- 
- @{
- OTRXMPPOldLoginStatusKey : @(OTRLoginStatus)
- OTRXMPPNewLoginStatusKey : @(OTRLoginStatus)
- OTRXMPPLoginErrorKey     : NSError*
- }
- */
-extern NSString *const OTRXMPPLoginStatusNotificationName;
-extern NSString *const OTRXMPPOldLoginStatusKey;
-extern NSString *const OTRXMPPNewLoginStatusKey;
-extern NSString *const OTRXMPPLoginErrorKey;
-extern NSString *const OTRXMPPRegisterSucceededNotificationName;
-extern NSString *const OTRXMPPRegisterFailedNotificationName;
 
 NS_ASSUME_NONNULL_END

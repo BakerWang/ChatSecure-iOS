@@ -19,6 +19,8 @@ typedef NS_ENUM(NSInteger, OTRThreadStatus) {
     OTRThreadStatusOffline      = 5
 };
 
+@class OMEMODevice;
+
 NS_ASSUME_NONNULL_BEGIN
 @protocol OTRThreadOwner <OTRYapDatabaseObjectProtocol>
 @required
@@ -46,6 +48,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 /** New outgoing message. Unsaved! */
 - (id<OTRMessageProtocol>)outgoingMessageWithText:(NSString*)text transaction:(YapDatabaseReadTransaction*)transaction;
+
+/** Translates the preferredSecurity value first if set, otherwise bestTransportSecurityWithTransaction: */
+- (OTRMessageTransportSecurity)preferredTransportSecurityWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
+/** Returns the best OTRMessageTransportSecurity that this buddy is capable */
+- (OTRMessageTransportSecurity)bestTransportSecurityWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
+/// returns all OMEMO devices associated with recipients in a chat thread
+- (NSArray<OMEMODevice*>*)omemoDevicesWithTransaction:(YapDatabaseReadTransaction*)transaction;
+
 @end
 NS_ASSUME_NONNULL_END
 

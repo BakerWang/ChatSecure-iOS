@@ -53,7 +53,7 @@
     if (self = [super init]) {
         self.selectedBuddiesIdSet = [[NSMutableSet alloc] init];
         _database = [OTRDatabaseManager sharedInstance].database;
-        _readWriteConnection = [OTRDatabaseManager sharedInstance].readWriteDatabaseConnection;
+        _readWriteConnection = [OTRDatabaseManager sharedInstance].writeConnection;
         _searchConnection = [self.database newConnection];
         _searchConnection.name = @"ComposeViewSearchConnection";
         _searchQueue = [[YapDatabaseSearchQueue alloc] init];
@@ -131,7 +131,7 @@
     //////// View Handlers /////////
     self.viewHandler = [[OTRYapViewHandler alloc] initWithDatabaseConnection:[OTRDatabaseManager sharedInstance].longLivedReadOnlyConnection databaseChangeNotificationName:[DatabaseNotificationName LongLivedTransactionChanges]];
     self.viewHandler.delegate = self;
-    [self.viewHandler setup:OTRFilteredBuddiesName groups:@[OTRBuddyGroup]];
+    [self.viewHandler setup:OTRArchiveFilteredBuddiesName groups:@[OTRBuddyGroup]];
     
     self.searchViewHandler = [[OTRYapViewHandler alloc] initWithDatabaseConnection:[OTRDatabaseManager sharedInstance].longLivedReadOnlyConnection databaseChangeNotificationName:[DatabaseNotificationName LongLivedTransactionChanges]];
     self.searchViewHandler.delegate = self;
@@ -142,7 +142,7 @@
         return [group1 compare:group2];
     }];
     
-    
+    [self.tableView reloadData];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -155,6 +155,27 @@
                                              selector:@selector(keyboardWillHide:)
                                                  name:UIKeyboardWillHideNotification
                                                object:nil];
+
+    [super viewWillAppear:YES];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
+    [self adjustSearchBarSize];
+
+    [super viewDidAppear:YES];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
+{
+    // Resize UISearchBar manually - it doesn't do it on its own on device turn.
+    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        [self adjustSearchBarSize];
+    } completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        [self adjustSearchBarSize];
+    }];
+
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
 }
 
 - (void)inboxArchiveControlValueChanged:(id)sender {
@@ -184,8 +205,8 @@
 }
 
 - (void) updateInboxArchiveFilteringAndShowArchived:(BOOL)showArchived {
-    [[OTRDatabaseManager sharedInstance].readWriteDatabaseConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction) {
-        YapDatabaseFilteredViewTransaction *fvt = [transaction ext:OTRFilteredBuddiesName];
+    [[OTRDatabaseManager sharedInstance].writeConnection asyncReadWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction) {
+        YapDatabaseFilteredViewTransaction *fvt = [transaction ext:OTRArchiveFilteredBuddiesName];
         YapDatabaseViewFiltering *filtering = [self getFilteringBlock:showArchived];
         [fvt setFiltering:filtering versionTag:[NSUUID UUID].UUIDString];
     }];
@@ -193,6 +214,7 @@
 
 - (void)viewWillDisappear:(BOOL)animated
 {
+    [super viewWillDisappear:animated];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
@@ -212,8 +234,7 @@
     self.searchController.delegate = self;
     
     self.definesPresentationContext = YES;
-    
-    [self.searchController.searchBar sizeToFit];
+
     //self.searchController.searchBar.placeholder = SEARCH_STRING;
     self.searchController.searchBar.searchBarStyle = UISearchBarStyleMinimal;
     self.searchController.searchBar.delegate = self;
@@ -222,9 +243,6 @@
 
 // Make sure bar stays at the top
 - (UIBarPosition)positionForBar:(id<UIBarPositioning>)bar {
-    if ([bar isKindOfClass:UISearchBar.class]) {
-        return UIBarPositionTopAttached;
-    }
     return UIBarPositionTop;
 }
 
@@ -290,15 +308,20 @@
 
 /** Intended to be called if selecting one buddy or after a group chat is created*/
 - (void)completeSelectingBuddies:(NSSet <NSString *>*)buddies groupName:(nullable NSString*)groupName {
-    if ([self.delegate respondsToSelector:@selector(controller:didSelectBuddies:accountId:name:)]) {
-        //TODO: Naive choosing account just any buddy but should really check that account is connected or show picker
-        __block NSString *accountId = nil;
-        [self.viewHandler.databaseConnection readWithBlock:^(YapDatabaseReadTransaction * _Nonnull transaction) {
-            NSString *buddyKey  = [buddies anyObject];
-            accountId = [OTRBuddy fetchObjectWithUniqueID:buddyKey transaction:transaction].accountUniqueId;
-        }];
-        [self.delegate controller:self didSelectBuddies:[buddies allObjects] accountId:accountId name:groupName];
+    if (![self.delegate respondsToSelector:@selector(controller:didSelectBuddies:accountId:name:)]) {
+        return;
     }
+    //TODO: Naive choosing account just any buddy but should really check that account is connected or show picker
+    __block NSString *accountId = nil;
+    [self.viewHandler.databaseConnection readWithBlock:^(YapDatabaseReadTransaction * _Nonnull transaction) {
+        NSString *buddyKey  = [buddies anyObject];
+        accountId = [OTRBuddy fetchObjectWithUniqueID:buddyKey transaction:transaction].accountUniqueId;
+    }];
+    if (!accountId) {
+        DDLogError(@"completeSelectingBuddies error: No account found!");
+        return;
+    }
+    [self.delegate controller:self didSelectBuddies:[buddies allObjects] accountId:accountId name:groupName];
 }
 
 - (void) groupButtonPressed:(id)sender {
@@ -424,7 +447,7 @@
     id<OTRThreadOwner> threadOwner = [self threadOwnerAtIndexPath:indexPath withTableView:tableView];
     
     __block OTRAccount *account = nil;
-    [OTRDatabaseManager.shared.readOnlyDatabaseConnection readWithBlock:^(YapDatabaseReadTransaction * _Nonnull transaction) {
+    [OTRDatabaseManager.shared.uiConnection readWithBlock:^(YapDatabaseReadTransaction * _Nonnull transaction) {
         BOOL showAccount = [self shouldShowAccountLabelWithTransaction:transaction];
         if (showAccount) {
             account = [OTRAccount accountForThread:threadOwner transaction:transaction];
@@ -485,7 +508,7 @@
     NSIndexPath *databaseIndexPath = [NSIndexPath indexPathForRow:indexPath.row inSection:0];
     id <OTRThreadOwner> thread = [self threadOwnerAtIndexPath:databaseIndexPath withTableView:tableView];
     if (!thread) { return nil; }
-    return [UITableView editActionsForThread:thread deleteActionAlsoRemovesFromRoster:YES connection:OTRDatabaseManager.shared.readWriteDatabaseConnection];
+    return [UITableView editActionsForThread:thread deleteActionAlsoRemovesFromRoster:YES connection:OTRDatabaseManager.shared.writeConnection];
 }
 
 - (void)addBuddy:(NSArray *)accountsAbleToAddBuddies
@@ -583,9 +606,7 @@
     }
     
     UITableView *tableView = self.tableView;
-    BOOL isSearchViewHandler = NO;
     if (self.searchViewHandler == handler) {
-        isSearchViewHandler = YES;
         tableView = ((UITableViewController*)self.searchController.searchResultsController).tableView;
     }
     
@@ -671,6 +692,14 @@
     [self.tableView reloadData];
 }
 
+- (void)didDismissSearchController:(UISearchController *)searchController
+{
+    // Needs to be done, when device was rotated and search bar had focus.
+    // The search bar will be in the wrong size now, otherwise.
+    [self adjustSearchBarSize];
+}
+
+
 #pragma - mark OTRComposeGroupViewControllerDelegate
 
 - (void)groupBuddiesSelected:(OTRComposeGroupViewController *)composeViewController buddyUniqueIds:(NSArray<NSString *> *)buddyUniqueIds groupName:(NSString *)groupName {
@@ -679,5 +708,18 @@
 
 - (void)groupSelectionCancelled:(OTRComposeGroupViewController *)composeViewController {
 }
+
+#pragma mark internal methods
+
+/**
+ * Resize our UISearchBar, so it fills its superview, exactly.
+ */
+- (void)adjustSearchBarSize {
+    UISearchBar *searchBar = self.searchController.searchBar;
+    CGRect frame = searchBar.superview.bounds;
+
+    searchBar.frame = frame;
+}
+
 
 @end

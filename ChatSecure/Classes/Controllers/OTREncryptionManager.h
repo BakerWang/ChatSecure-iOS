@@ -23,8 +23,6 @@
 @import Foundation;
 @import OTRKit;
 
-@class OTRPushTLVHandler;
-
 extern NSString * _Nonnull const OTRMessageStateDidChangeNotification;
 extern NSString * _Nonnull const OTRWillStartGeneratingPrivateKeyNotification;
 extern NSString * _Nonnull const OTRDidFinishGeneratingPrivateKeyNotification;
@@ -43,11 +41,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong, readonly) OTRKit *otrKit;
 @property (nonatomic, strong, readonly) OTRDataHandler *dataHandler;
-@property (nonatomic, strong, readonly) OTRPushTLVHandler *pushTLVHandler;
 
 /**
  * This method takes a buddy key and collection. If it finds an object in the database and `hasGoneEncryptedBefore` is true
  * It will try to initiate a new OTR session. This is useful when re-entering a converstaion with a buddy.
+ * This will bail out unless buddy.preferredSecurity == .OTR
  *
  * @param buddyKey The Yap key for the buddy
  * @param collection The Yap collection for the buddy

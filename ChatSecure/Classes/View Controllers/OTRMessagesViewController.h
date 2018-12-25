@@ -13,7 +13,8 @@
 @import OTRKit;
 @import JSQMessagesViewController;
 
-@class OTRBuddy, OTRXMPPManager, OTRXMPPRoom, OTRAccount, YapDatabaseConnection, OTRYapDatabaseObject, MessagesViewControllerState;
+@class OTRBuddy, OTRXMPPManager, OTRXMPPRoom, OTRXMPPAccount, YapDatabaseConnection, OTRYapDatabaseObject, MessagesViewControllerState, DatabaseConnections;
+@class SupplementaryViewHandler;
 
 @protocol OTRThreadOwner,OTRMessageProtocol,JSQMessageData;
 
@@ -26,8 +27,11 @@
 
 @interface OTRMessagesViewController : JSQMessagesViewController <OTRMessagesViewControllerProtocol, UIPopoverPresentationControllerDelegate>
 
-@property (nonatomic, strong, nonnull) YapDatabaseConnection *readOnlyDatabaseConnection;
-@property (nonatomic, strong, nonnull) YapDatabaseConnection *readWriteDatabaseConnection;
+@property (nonatomic, readonly, nullable) SupplementaryViewHandler *supplementaryViewHandler;
+@property (nonatomic, readonly, nullable) DatabaseConnections *connections;
+@property (nonatomic, strong, readonly, nullable) YapDatabaseConnection *uiConnection DEPRECATED_MSG_ATTRIBUTE("Use connections.ui instead");
+@property (nonatomic, strong, readonly, nullable) YapDatabaseConnection *readConnection DEPRECATED_MSG_ATTRIBUTE("Use connections.read instead");
+@property (nonatomic, strong, readonly, nullable) YapDatabaseConnection *writeConnection DEPRECATED_MSG_ATTRIBUTE("Use connections.write instead");
 @property (nonatomic, strong, nullable) NSString *threadKey;
 @property (nonatomic, strong, nullable) NSString *threadCollection;
 @property (nonatomic, strong, nullable) UIButton *microphoneButton;
@@ -35,8 +39,7 @@
 @property (nonatomic, strong, nullable) UIButton *cameraButton;
 
 @property (nonatomic, strong, nonnull, readonly) MessagesViewControllerState *state;
-
-- (void)setupWithBuddies:(nonnull NSArray<NSString *> *)buddies accountId:(nonnull NSString *)accountId name:(nullable NSString *)name;
+@property (nonatomic) BOOL automaticURLFetchingDisabled;
 
 - (void)setThreadKey:(nullable NSString *)key collection:(nullable NSString *)collection;
 - (void)sendAudioFileURL:(nonnull NSURL *)url;
@@ -47,16 +50,21 @@
 - (nullable UIBarButtonItem *)rightBarButtonItem;
 
 - (void)infoButtonPressed:(nullable id)sender;
-
+- (void)newDeviceButtonPressed:(nonnull NSString *)buddyUniqueId;
 
 - (nullable id<OTRThreadOwner>)threadObjectWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
-- (nullable OTRAccount *)accountWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
+- (nullable OTRXMPPAccount *)accountWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
 - (nullable OTRXMPPManager *)xmppManagerWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
 - (nullable id <OTRMessageProtocol,JSQMessageData>)messageAtIndexPath:(nonnull NSIndexPath *)indexPath;
 
 /** Group chat support */
 - (nullable OTRXMPPRoom *)roomWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
 - (BOOL) isGroupChat;
+
+
+/** Buddies is array of OTRBuddy.uniqueId */
+- (void)setupWithBuddies:(nonnull NSArray<NSString *> *)buddies accountId:(nonnull NSString *)accountId name:(nullable NSString *)name;
+
 
 /** This is called on every key stroke so be careful here. Used in subclasses*/
 - (void)isTyping;

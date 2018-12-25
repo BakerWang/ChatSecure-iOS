@@ -19,6 +19,15 @@ public extension NSError {
             return false
         }
     }
+    
+    @objc public var isUserCanceledError: Bool {
+        if self.domain == FileTransferError.errorDomain &&
+            self.code == FileTransferError.userCanceled.errorCode {
+            return true
+        } else {
+            return false
+        }
+    }
 }
 
 public class MediaDownloadView: UIView {
@@ -30,7 +39,7 @@ public class MediaDownloadView: UIView {
     @objc public func setMediaItem(_ mediaItem: OTRMediaItem, message: OTRDownloadMessage) {
         if let error = message.messageError {
             let nsError = error as NSError
-            if nsError.isAutomaticDownloadError {
+            if nsError.isAutomaticDownloadError || nsError.isUserCanceledError {
                 statusLabel.text = mediaItem.displayText()
             } else {
                 statusLabel.text = "⚠️ \(ERROR_STRING())"
@@ -43,11 +52,11 @@ public class MediaDownloadView: UIView {
         
         self.downloadAction = { [weak self] view, sender in
             self?.downloadButton.isEnabled = false
-            var xmpp: OTRXMPPManager? = nil
-            OTRDatabaseManager.shared.readOnlyDatabaseConnection?.read { transaction in
+            var xmpp: XMPPManager? = nil
+            OTRDatabaseManager.shared.uiConnection?.read { transaction in
                 guard let thread = message.threadOwner(with: transaction) else { return }
                 guard let account = thread.account(with: transaction) else { return }
-                xmpp = OTRProtocolManager.shared.protocol(for: account) as? OTRXMPPManager
+                xmpp = OTRProtocolManager.shared.protocol(for: account) as? XMPPManager
                 xmpp?.fileTransferManager.downloadMediaIfNeeded(message)
             }
         }

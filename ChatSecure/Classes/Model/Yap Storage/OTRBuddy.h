@@ -66,19 +66,6 @@ typedef NS_ENUM(NSUInteger, OTRSessionSecurity) {
 - (nullable id <OTRMessageProtocol>)lastMessageWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
 - (nullable OTRAccount*)accountWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
 
-/** Translates the preferredSecurity value first if set, otherwise bestTransportSecurityWithTransaction: */
-- (OTRMessageTransportSecurity)preferredTransportSecurityWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
-/** Returns the best OTRMessageTransportSecurity that this buddy is capable */
-- (OTRMessageTransportSecurity)bestTransportSecurityWithTransaction:(nonnull YapDatabaseReadTransaction *)transaction;
-
-+ (nullable instancetype)fetchBuddyForUsername:(nonnull NSString *)username
-                          accountName:(nonnull NSString *)accountName
-                          transaction:(nonnull YapDatabaseReadTransaction *)transaction;
-
-+ (nullable instancetype)fetchBuddyWithUsername:(nonnull NSString *)username
-                   withAccountUniqueId:(nonnull NSString *)accountUniqueId
-                           transaction:(nonnull YapDatabaseReadTransaction *)transaction;
-
 /** Excluded properties for Mantle */
 + (nonnull NSSet<NSString*>*) excludedProperties;
 

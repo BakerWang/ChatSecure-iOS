@@ -21,7 +21,6 @@
 //  along with ChatSecure.  If not, see <http://www.gnu.org/licenses/>.
 
 @class OTROutgoingMessage, OTRBuddy, OTRAccount;
-@protocol PushControllerProtocol;
 
 typedef NS_ENUM(int, OTRProtocolType) {
     OTRProtocolTypeNone        = 0,
@@ -29,15 +28,9 @@ typedef NS_ENUM(int, OTRProtocolType) {
     OTRProtocolTypeOscar       = 2 // deprecated
 };
 
-typedef NS_ENUM(NSInteger, OTRProtocolConnectionStatus) {
-    OTRProtocolConnectionStatusDisconnected,
-    OTRProtocolConnectionStatusDisconnecting,
-    OTRProtocolConnectionStatusConnected,
-    OTRProtocolConnectionStatusConnecting
-};
-
 typedef NS_ENUM(NSInteger, OTRLoginStatus) {
     OTRLoginStatusDisconnected = 0,
+    OTRLoginStatusDisconnecting,
     OTRLoginStatusConnecting,
     OTRLoginStatusConnected,
     OTRLoginStatusSecuring,
@@ -48,8 +41,6 @@ typedef NS_ENUM(NSInteger, OTRLoginStatus) {
 
 NS_ASSUME_NONNULL_BEGIN
 @protocol OTRProtocol <NSObject>
-
-@property (atomic, readonly) OTRProtocolConnectionStatus connectionStatus;
 
 /** Send a message immediately. Bypasses (and used by) the message queue. */
 - (void) sendMessage:(OTROutgoingMessage*)message;

@@ -11,7 +11,7 @@ import XLForm
 import YapDatabase
 import OTRAssets
 
-open class UserProfileViewController: XLFormViewController {
+open class KeyManagementViewController: XLFormViewController {
     
     @objc open var completionBlock: (()->Void)?
     
@@ -23,11 +23,12 @@ open class UserProfileViewController: XLFormViewController {
     open static let ShowAdvancedCryptoSettingsTag = "ShowAdvancedCryptoSettingsTag"
     
     open let accountKey:String
-    open var connection: YapDatabaseConnection
+    open var readConnection: YapDatabaseConnection
+    open var writeConnection: YapDatabaseConnection
     
     lazy var signalCoordinator:OTROMEMOSignalCoordinator? = {
         var account:OTRAccount? = nil
-        self.connection.read { (transaction) in
+        self.readConnection.read { (transaction) in
             account = OTRAccount.fetchObject(withUniqueID: self.accountKey, transaction: transaction)
         }
         
@@ -35,15 +36,19 @@ open class UserProfileViewController: XLFormViewController {
             return nil
         }
         
-        guard let xmpp = OTRProtocolManager.sharedInstance().protocol(for: acct) as? OTRXMPPManager else {
+        guard let xmpp = OTRProtocolManager.sharedInstance().protocol(for: acct) as? XMPPManager else {
             return nil
         }
         return xmpp.omemoSignalCoordinator
     }()
     
-    @objc public init(accountKey:String, connection: YapDatabaseConnection, form: XLFormDescriptor) {
+    @objc public init(accountKey:String,
+                      readConnection: YapDatabaseConnection,
+                      writeConnection:YapDatabaseConnection,
+                      form: XLFormDescriptor) {
         self.accountKey = accountKey
-        self.connection = connection
+        self.readConnection = readConnection
+        self.writeConnection = writeConnection
         super.init(nibName: nil, bundle: nil)
         
         self.form = form
@@ -72,11 +77,11 @@ open class UserProfileViewController: XLFormViewController {
     }
     
     @objc open func doneButtonPressed(_ sender: AnyObject?) {
-        var devicesToSave: [OTROMEMODevice] = []
+        var devicesToSave: [OMEMODevice] = []
         var otrFingerprintsToSave: [OTRFingerprint] = []
         for (_, value) in form.formValues() {
             switch value {
-            case let device as OTROMEMODevice:
+            case let device as OMEMODevice:
                 devicesToSave.append(device)
             case let fingerprint as OTRFingerprint:
                 otrFingerprintsToSave.append(fingerprint)
@@ -86,8 +91,8 @@ open class UserProfileViewController: XLFormViewController {
         }
         OTRDatabaseManager.sharedInstance().readWriteDatabaseConnection?.asyncReadWrite({ (t: YapDatabaseReadWriteTransaction) in
             for viewedDevice in devicesToSave {
-                if var device = t.object(forKey: viewedDevice.uniqueId, inCollection: OTROMEMODevice.collection) as? OTROMEMODevice {
-                    device = device.copy() as! OTROMEMODevice
+                if var device = t.object(forKey: viewedDevice.uniqueId, inCollection: OMEMODevice.collection) as? OMEMODevice {
+                    device = device.copy() as! OMEMODevice
                     device.trustLevel = viewedDevice.trustLevel
                     
                     if (device.trustLevel == .trustedUser && device.isExpired()) {
@@ -100,7 +105,7 @@ open class UserProfileViewController: XLFormViewController {
         })
         
         otrFingerprintsToSave.forEach { (fingerprint) in
-            OTRProtocolManager.sharedInstance().encryptionManager.save(fingerprint)
+            OTRProtocolManager.encryptionManager.save(fingerprint)
         }
         if let completion = self.completionBlock {
             completion()
@@ -112,10 +117,10 @@ open class UserProfileViewController: XLFormViewController {
         if let rowDescriptor = self.form.formRow(atIndex: indexPath) {
             
             switch rowDescriptor.value {
-            case let device as OTROMEMODevice:
+            case let device as OMEMODevice:
                 if let myBundle = self.signalCoordinator?.fetchMyBundle() {
                     // This is only used to compare so we don't allow delete UI on our device
-                    let thisDeviceYapKey = OTROMEMODevice.yapKey(withDeviceId: NSNumber(value: myBundle.deviceId as UInt32), parentKey: self.accountKey, parentCollection: OTRAccount.collection)
+                    let thisDeviceYapKey = OMEMODevice.yapKey(withDeviceId: NSNumber(value: myBundle.deviceId as UInt32), parentKey: self.accountKey, parentCollection: OTRAccount.collection)
                     if device.uniqueId != thisDeviceYapKey {
                         return true
                     }
@@ -136,7 +141,7 @@ open class UserProfileViewController: XLFormViewController {
             if let rowDescriptor = self.form.formRow(atIndex: indexPath) {
                 rowDescriptor.sectionDescriptor.removeFormRow(rowDescriptor)
                 switch rowDescriptor.value {
-                case let device as OTROMEMODevice:
+                case let device as OMEMODevice:
                     
                     self.signalCoordinator?.removeDevice([device], completion: { (success) in
                         
@@ -144,7 +149,7 @@ open class UserProfileViewController: XLFormViewController {
                     break
                 case let fingerprint as OTRFingerprint:
                     do {
-                        try OTRProtocolManager.sharedInstance().encryptionManager.otrKit.delete(fingerprint)
+                        try OTRProtocolManager.encryptionManager.otrKit.delete(fingerprint)
                     } catch {
                         
                     }
@@ -167,7 +172,7 @@ open class UserProfileViewController: XLFormViewController {
         var hasDevices = false
         
         connection.read { (transaction: YapDatabaseReadTransaction) in
-            if OTROMEMODevice.allDevices(forParentKey: buddy.uniqueId, collection: type(of: buddy).collection, transaction: transaction).count > 0 {
+            if OMEMODevice.allDevices(forParentKey: buddy.uniqueId, collection: type(of: buddy).collection, transaction: transaction).count > 0 {
                 hasDevices = true
             }
         }
@@ -257,7 +262,7 @@ open class UserProfileViewController: XLFormViewController {
                 buddy.save(with: transaction)
                 // Cancel OTR session if plaintext or omemo only
                 if (preferredSecurity == .plaintextOnly || preferredSecurity == .OMEMO) {
-                    OTRProtocolManager.sharedInstance().encryptionManager.otrKit.disableEncryption(withUsername: buddy.username, accountName: account.username, protocol: account.protocolTypeString())
+                    OTRProtocolManager.encryptionManager.otrKit.disableEncryption(withUsername: buddy.username, accountName: account.username, protocol: account.protocolTypeString())
                 }
             })
             currentRow = nil
@@ -300,26 +305,26 @@ open class UserProfileViewController: XLFormViewController {
         yourProfileRow.value = account
         yourProfileSection.addFormRow(yourProfileRow)
         
-        guard let xmpp = OTRProtocolManager.sharedInstance().protocol(for: account) as? OTRXMPPManager else {
+        guard let xmpp = OTRProtocolManager.sharedInstance().protocol(for: account) as? XMPPManager else {
             return form
         }
         guard let myBundle = xmpp.omemoSignalCoordinator?.fetchMyBundle() else {
             return form
         }
-        let thisDevice = OTROMEMODevice(deviceId: NSNumber(value: myBundle.deviceId as UInt32), trustLevel: .trustedUser, parentKey: account.uniqueId, parentCollection: type(of: account).collection, publicIdentityKeyData: myBundle.identityKey, lastSeenDate: Date())
-        var ourDevices: [OTROMEMODevice] = []
+        let thisDevice = OMEMODevice(deviceId: NSNumber(value: myBundle.deviceId as UInt32), trustLevel: .trustedUser, parentKey: account.uniqueId, parentCollection: type(of: account).collection, publicIdentityKeyData: myBundle.identityKey, lastSeenDate: Date())
+        var ourDevices: [OMEMODevice] = []
         connection.read { (transaction: YapDatabaseReadTransaction) in
-            ourDevices = OTROMEMODevice.allDevices(forParentKey: account.uniqueId, collection: type(of: account).collection, transaction: transaction)
+            ourDevices = OMEMODevice.allDevices(forParentKey: account.uniqueId, collection: type(of: account).collection, transaction: transaction)
         }
 
         
-        let ourFilteredDevices = ourDevices.filter({ (device: OTROMEMODevice) -> Bool in
+        let ourFilteredDevices = ourDevices.filter({ (device: OMEMODevice) -> Bool in
             return device.uniqueId != thisDevice.uniqueId
         })
         
         // TODO - Sort ourDevices and theirDevices by lastSeen
         
-        let addDevicesToSection: ([OTROMEMODevice], XLFormSectionDescriptor) -> Void = { devices, section in
+        let addDevicesToSection: ([OMEMODevice], XLFormSectionDescriptor) -> Void = { devices, section in
             for device in devices {
                 guard let _ = device.publicIdentityKeyData else {
                     continue
@@ -336,7 +341,7 @@ open class UserProfileViewController: XLFormViewController {
             }
         }
         
-        let otrKit = OTRProtocolManager.sharedInstance().encryptionManager.otrKit
+        let otrKit = OTRProtocolManager.encryptionManager.otrKit
         let allFingerprints = otrKit.allFingerprints()
         let myFingerprint = otrKit.fingerprint(forAccountName: account.username, protocol: account.protocolTypeString())
         let addFingerprintsToSection: ([OTRFingerprint], XLFormSectionDescriptor) -> Void = { fingerprints, section in
@@ -357,7 +362,7 @@ open class UserProfileViewController: XLFormViewController {
             }
         }
         
-        var allMyDevices: [OTROMEMODevice] = []
+        var allMyDevices: [OMEMODevice] = []
         allMyDevices.append(thisDevice)
         allMyDevices.append(contentsOf: ourFilteredDevices)
         addDevicesToSection(allMyDevices, yourProfileSection)
@@ -375,9 +380,9 @@ open class UserProfileViewController: XLFormViewController {
             let buddyRow = XLFormRowDescriptor(tag: buddy.uniqueId, rowType: UserInfoProfileCell.defaultRowDescriptorType())
             buddyRow.value = buddy
             theirSection.addFormRow(buddyRow)
-            var theirDevices: [OTROMEMODevice] = []
+            var theirDevices: [OMEMODevice] = []
             connection.read({ (transaction: YapDatabaseReadTransaction) in
-                theirDevices = OTROMEMODevice.allDevices(forParentKey: buddy.uniqueId, collection: type(of: buddy).collection, transaction: transaction)
+                theirDevices = OMEMODevice.allDevices(forParentKey: buddy.uniqueId, collection: type(of: buddy).collection, transaction: transaction)
             })
             let theirFingerprints = allFingerprints.filter({ (fingerprint: OTRFingerprint) -> Bool in
                 return fingerprint.username == buddy.username &&
@@ -432,10 +437,10 @@ open class UserProfileViewController: XLFormViewController {
         var fingerprint = ""
         var username = ""
         var cryptoType = ""
-        if let device = cell.rowDescriptor.value as? OTROMEMODevice {
+        if let device = cell.rowDescriptor.value as? OMEMODevice {
             cryptoType = "OMEMO"
             fingerprint = device.humanReadableFingerprint
-            self.connection.read({ (transaction) in
+            self.readConnection.read({ (transaction) in
                 if let buddy = transaction.object(forKey: device.parentKey, inCollection: device.parentCollection) as? OTRBuddy {
                     username = buddy.username
                 }
@@ -446,7 +451,7 @@ open class UserProfileViewController: XLFormViewController {
             fingerprint = (otrFingerprint.fingerprint as NSData).humanReadableFingerprint()
             username = otrFingerprint.username
         }
-        if fingerprint.characters.count == 0 || username.characters.count == 0 || cryptoType.characters.count == 0 {
+        if fingerprint.count == 0 || username.count == 0 || cryptoType.count == 0 {
             return
         }
         let stringToShare = "\(username): \(cryptoType) \(fingerprint)"

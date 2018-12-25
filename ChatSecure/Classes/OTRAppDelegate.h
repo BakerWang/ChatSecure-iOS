@@ -22,28 +22,23 @@
 
 @import UIKit;
 
-#import "OTRTheme.h"
-#import "OTRMessagesViewController.h"
-#import "OTRConversationViewController.h"
+@class OTRSplitViewCoordinator, OTRConversationViewController, OTRMessagesViewController;
+@protocol AppTheme;
 
 NS_ASSUME_NONNULL_BEGIN
+
 @interface OTRAppDelegate : UIResponder <UIApplicationDelegate>
 
 @property (nonatomic, strong, readonly) OTRConversationViewController *conversationViewController;
 @property (nonatomic, strong, readonly) OTRMessagesViewController *messagesViewController;
+@property (nonatomic, strong, readonly) OTRSplitViewCoordinator *splitViewCoordinator;
 
 /** Only used from Database Unlock view. */
 - (void) showConversationViewController;
 
-/** The yap key for the active on-screen OTRThreadOwner. This should be moved */
-@property (class, nonatomic, readonly, nullable) NSString *activeThreadYapKey;
 @property (class, nonatomic, readonly) __kindof OTRAppDelegate *appDelegate;
 
-#pragma mark Theming
-
-@property (nonatomic, strong, readonly) __kindof OTRTheme *theme;
-/** Override this in subclass to use a different theme class */
-- (Class) themeClass;
-
 @end
+
+
 NS_ASSUME_NONNULL_END

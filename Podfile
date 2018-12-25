@@ -6,6 +6,8 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['ENABLE_BITCODE'] = 'NO'
+      config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
+      config.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
     end
   end
 end
@@ -13,6 +15,7 @@ end
 platform :ios, "9.0"
 
 use_frameworks!
+inhibit_all_warnings!
 
 source 'https://github.com/CocoaPods/Specs.git'
 
@@ -26,29 +29,30 @@ abstract_target 'ChatSecureCorePods' do
   pod 'ARChromeActivity', '~> 1.0'
   pod 'QRCodeReaderViewController', '~> 4.0'
   # pod 'ParkedTextField', '~> 0.3.1'
-  pod 'ParkedTextField', :git => 'https://github.com/gmertk/ParkedTextField.git', :commit => '46df17a' # Swift 4
+  pod 'ParkedTextField', :git => 'https://github.com/gmertk/ParkedTextField.git', :commit => 'a3800e3' # Swift 4.2
 
 
   pod 'JSQMessagesViewController', :path => 'Submodules/JSQMessagesViewController/JSQMessagesViewController.podspec'
 
-  # Debugging
-  pod 'Reveal-SDK', :configurations => ['Debug']
+  # pod 'LumberjackConsole', '~> 3.3.0'
+  pod 'LumberjackConsole', :path => 'Submodules/LumberjackConsole/LumberjackConsole.podspec'
+
 
   # Utility
-  pod 'CocoaLumberjack/Swift', '~> 3.3.0'
-  # pod 'CocoaLumberjack/Swift', :git => 'https://github.com/CocoaLumberjack/CocoaLumberjack.git', :commit => 'acc32864538c5d75b41a4bfa364b1431cf89954d' # Fixes compile error on Xcode 9
+  pod 'CocoaLumberjack/Swift', '~> 3.4.0'
   pod 'MWFeedParser', '~> 1.0'
   pod 'Navajo', '~> 0.0'
   pod 'BBlock', '~> 1.2'
-  pod 'KSCrash', '~> 1.15.3'
+  pod 'HockeySDK-Source'
+  pod 'LicensePlist'
 
   # Network
   pod 'CocoaAsyncSocket', '~> 7.6.0'
   pod 'ProxyKit/Client', '~> 1.2.0'
   pod 'GCDWebServer', '~> 3.4'
-  # pod 'GCDWebServer/CocoaLumberjack', :git => 'https://github.com/ChatSecure/GCDWebServer.git', :branch => 'kdbertel-CocoaLumberjack3'
   pod 'CPAProxy', :path => 'Submodules/CPAProxy/CPAProxy.podspec'
-  pod 'XMPPFramework', :path => 'Submodules/XMPPFramework/XMPPFramework.podspec'
+  pod 'XMPPFramework/Swift', :path => 'Submodules/XMPPFramework/XMPPFramework.podspec'
+
   pod 'ChatSecure-Push-iOS', :path => 'Submodules/ChatSecure-Push-iOS/ChatSecure-Push-iOS.podspec'
 
   # Google Auth
@@ -56,9 +60,12 @@ abstract_target 'ChatSecureCorePods' do
   pod 'gtm-oauth2', :podspec => 'Podspecs/gtm-oauth2.podspec'
 
   # Storage
-  pod 'YapDatabase/SQLCipher', '~> 3.0.2'
-  # pod 'YapDatabase/SQLCipher', :git => 'https://github.com/yapstudios/YapDatabase.git', :commit => 'd632658'
-  pod 'libsqlfs/SQLCipher', :git => 'https://github.com/ChatSecure/libsqlfs.git', :branch => 'podspec-fix'
+  # We are blocked on SQLCipher 4.0.0 migration https://github.com/ChatSecure/ChatSecure-iOS/issues/1078
+  pod 'SQLCipher', '~> 3.4'
+  pod 'YapDatabase/SQLCipher', '~> 3.1'
+
+  # The upstream 1.3.2 has a regression https://github.com/ChatSecure/ChatSecure-iOS/issues/1075
+  pod 'libsqlfs/SQLCipher', :git => 'https://github.com/ChatSecure/libsqlfs.git', :branch => '1.3.2-chatsecure'
   pod 'IOCipher/GCDWebServer', :path => 'Submodules/IOCipher/IOCipher.podspec'
   pod 'YapTaskQueue/SQLCipher', :git => 'https://github.com/ChatSecure/YapTaskQueue.git', :branch => 'swift4'
 

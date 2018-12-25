@@ -24,28 +24,25 @@ However, developing and supporting this project is hard work and costs real mone
 
 ## Localization
 
-
-![transifex localization](https://www.transifex.com/projects/p/chatsecure/resource/strings/chart/image_png)
-
 If you would like to contribute/improve a translation:
 
- 1. Visit our [Transifex project page](https://www.transifex.net/projects/p/chatsecure/) and make an account if you don't have one already.
- 2. Go to the resources subsites [AppStore.strings](https://www.transifex.net/projects/p/chatsecure/resource/appstorestrings/) & [Localizable.strings](https://www.transifex.net/projects/p/chatsecure/resource/strings/) to add a new language or improve an existing translation. 
+ 1. Visit our [Transifex project page](https://www.transifex.com/chrisballinger/chatsecure/) and make an account if you don't have one already.
+ 2. Go to the resources subsites `AppStore.strings` & `Localizable.strings` to add a new language or improve an existing translation. 
  3. [Open an issue on Github](https://github.com/ChatSecure/ChatSecure-iOS/issues) notifying us of your translation.
 
 
 ## Compatibility
 
-There's a more [full list of OTR clients on Wikipedia](https://en.wikipedia.org/wiki/Off-the-Record_Messaging#Client_support). A smaller list of clients support the mobile-friendly [OMEMO Encryption](https://en.wikipedia.org/wiki/OMEMO#Usage).
+There's a more [full list of OTR clients on Wikipedia](https://en.wikipedia.org/wiki/Off-the-Record_Messaging#Client_support). A smaller list of clients support the mobile-friendly [OMEMO Encryption](https://omemo.top/).
 
 ### Desktop
 
-* [CoyIM](https://coy.im) (Cross-platform)
+* [dino](https://dino.im) (Linux, macOS, Windows) **Supports OMEMO**
 
 ### Mobile
 
-* [Conversations](https://github.com/siacs/Conversations) (Android) **Supports OMEMO**
-* [Zom](https://zom.im/) (Android, iOS)
+* [Conversations](https://conversations.im) (Android) **Supports OMEMO**
+* [Zom](https://zom.im/) (Android, iOS) **Supports OMEMO**
 
 ## Build Instructions
 
@@ -82,7 +79,7 @@ If you're still having trouble compiling check out the Travis-CI build status an
 
 ## Contributing
 
-Thank you for your interest in contributing to ChatSecure! To avoid potential legal headaches and to allow distribution on Apple's App Store please sign our CLA (Contributors License Agreement). For contributing translations, please check out our [Transifex](https://www.transifex.com/projects/p/chatsecure/) page.
+Thank you for your interest in contributing to ChatSecure! To avoid potential legal headaches and to allow distribution on Apple's App Store please sign our CLA (Contributors License Agreement).
 
 1. Sign the CLA ([odt](https://github.com/ChatSecure/ChatSecure-iOS/raw/master/media/contributing/CLA.odt), [pdf](https://github.com/ChatSecure/ChatSecure-iOS/raw/master/media/contributing/CLA.pdf)) and email it to [chris@chatsecure.org](mailto:chris@chatsecure.org).
 2. [Fork](https://github.com/ChatSecure/ChatSecure-iOS/fork) the project and (preferably) work in a feature branch.
@@ -143,7 +140,16 @@ terms of a separate license:
 * [HockeySDK](https://github.com/bitstadium/HockeySDK-iOS) - crash reporting framework
 * [DAKeyboardControl](https://github.com/danielamitay/DAKeyboardControl) - support for swiping down keyboard in chat view
 
-For a more complete list, check the [Podfile](https://github.com/ChatSecure/ChatSecure-iOS/blob/master/Podfile) and [Cartfile](https://github.com/ChatSecure/ChatSecure-iOS/blob/master/Cartfile). To regenerate the acknowledgements in Settings.app use [LicensePlist](https://github.com/mono0926/LicensePlist) `license-plist --add-version-numbers` and copy the output to `Settings.bundle`.
+For a more complete list, check the [Podfile](https://github.com/ChatSecure/ChatSecure-iOS/blob/master/Podfile) and [Cartfile](https://github.com/ChatSecure/ChatSecure-iOS/blob/master/Cartfile).
+
+#### Regenerating Acknowledgements
+
+To regenerate the acknowledgements in Settings.app use [LicensePlist](https://github.com/mono0926/LicensePlist) and copy the output to `Settings.bundle`.
+
+```
+$ brew install mono0926/license-plist/license-plist
+$ license-plist --add-version-numbers --output-path ChatSecure/Settings.bundle --suppress-opening-directory
+```
 
 ## Acknowledgements
 

@@ -64,11 +64,11 @@
     [settingsGroups addObject:accountsGroup];
     
     if (OTRBranding.allowsDonation) {
-        NSString *donateTitle = DONATE_STRING();
+        NSString *donateTitle = nil;
         if (TransactionObserver.hasValidReceipt) {
             donateTitle = [NSString stringWithFormat:@"%@    ✅", DONATE_STRING()];
         } else {
-            donateTitle = [NSString stringWithFormat:@"%@    🆕", DONATE_STRING()];
+            donateTitle = [NSString stringWithFormat:@"%@    🎁", DONATE_STRING()];
         }
         OTRDonateSetting *donateSetting = [[OTRDonateSetting alloc] initWithTitle:donateTitle description:nil];
         //donateSetting.imageName = @"29-heart.png";
@@ -134,14 +134,31 @@
         [otherSettings addObject:feedbackViewSetting];
     }
 
-#ifdef DEBUG
-    OTRViewSetting *logsSetting = [[OTRViewSetting alloc] initWithTitle:@"View Logs"
-                                                            description:nil
-                                                    viewControllerClass:[OTRLogListViewController class]];
-    [otherSettings addObject:logsSetting];
-#endif
     OTRSettingsGroup *otherGroup = [[OTRSettingsGroup alloc] initWithTitle:OTHER_STRING() settings:otherSettings];
+    
+    OTRSettingsGroup *advancedGroup = [[OTRSettingsGroup alloc] initWithTitle:ADVANCED_STRING()];
+    
+    if (OTRBranding.allowGroupOMEMO) {
+        OTRBoolSetting *omemoGroupKeySetting = [[OTRBoolSetting alloc] initWithTitle:OMEMO_GROUP_ENCRYPTION_STRING()
+                                                                         description:OMEMO_GROUP_ENCRYPTION_DETAIL_STRING()
+                                                                         settingsKey:kOTRShowOMEMOGroupEncryptionKey];
+        [advancedGroup addSetting:omemoGroupKeySetting];
+    }
+    
+    if (OTRBranding.allowDebugFileLogging) {
+        OTRViewSetting *logsSetting = [[OTRViewSetting alloc] initWithTitle:MANAGE_DEBUG_LOGS_STRING()
+                                                                description:nil
+                                                        viewControllerClass:[OTRLogListViewController class]];
+        logsSetting.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+        [advancedGroup addSetting:logsSetting];
+    }
+    
     [settingsGroups addObject:otherGroup];
+    
+    if (advancedGroup.settings.count > 0) {
+        [settingsGroups addObject:advancedGroup];
+    }
+    
     _settingsDictionary = newSettingsDictionary;
     _settingsGroups = settingsGroups;
 }
@@ -203,6 +220,10 @@
 
 - (nullable OTRSetting*) settingForOTRSettingKey:(NSString*)key {
     return [self.settingsDictionary objectForKey:key];
+}
+
++ (BOOL) allowGroupOMEMO {
+    return OTRBranding.allowGroupOMEMO && [self boolForOTRSettingKey:kOTRShowOMEMOGroupEncryptionKey];
 }
 
 @end
